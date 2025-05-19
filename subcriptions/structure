@@ -1,0 +1,7 @@
+The-Finisher/
+│── src/
+│   ├── app.py  # Main Flask app
+│   ├── subscriptions/  # NEW folder for subscription management
+│   │   ├── subscriptions.py  # Handles billing cycles & renewal logic
+│   │   ├── payments.py  # Processes Stripe, PayPal, CashApp, etc.
+│   │   ├── database.py  # Stores subscription records & user details

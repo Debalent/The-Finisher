@@ -1,0 +1,3 @@
+[submodule "backend/sample_organizer"]
+	path = backend/sample_organizer
+	url = https://github.com/Debalent/BeatSample-Organizer.git

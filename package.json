@@ -1,15 +1,44 @@
 {
   "name": "the-finisher",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "## **Unlock Creativity. Finish Your Songs Faster.**",
+  
+  // 🔹 Main entry point for the backend
   "main": "index.js",
+
+  // 🔹 Essential scripts (Can be expanded for testing and automation)
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+
+  // 🔹 Keywords to improve discoverability (Can be refined for SEO)
+  "keywords": ["music production", "DAW automation", "creative workflow", "sample organization"],
+
+  "author": "Debalent",
   "license": "ISC",
+
+  // 🔹 Dependencies: Consider expanding as The Finisher scales
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "stripe": "^10.0.0",  // 💳 Added for subscription payments
+    "dotenv": "^16.0.3"   // 🔐 Secure environment configuration
+  },
+
+  // 🔹 Subscription pricing model
+  "subscriptions": {
+    "bi_weekly": { "price": 15, "duration_days": 14, "features": ["Basic sample organization", "Limited DAW integration"] },
+    "monthly": { "price": 30, "duration_days": 30, "features": ["Full sample organization", "Multi-DAW support", "Priority customer support"] },
+    "quarterly": { "price": 80, "duration_days": 90, "features": ["Enhanced automation", "Early access to plugins"] },
+    "semi_annually": { "price": 150, "duration_days": 180, "features": ["AI-powered recommendations", "Extended storage"] },
+    "annually": { "price": 280, "duration_days": 365, "features": ["Enterprise-level customization", "Exclusive creator events"] },
+    "bi_annually": { "price": 500, "duration_days": 730, "features": ["Lifetime updates", "Direct creator collaboration"] }
+  },
+
+  // 🔹 Investor-friendly notes for scalability
+  "investor_notes": {
+    "growth_potential": "The Finisher is positioned as a scalable SaaS tool for music creators. Future revenue streams include tiered subscriptions, AI-based workflow enhancements, and integration with major DAWs.",
+    "market_fit": "Designed to optimize the song-finishing process, catering to independent artists, studios, and educators.",
+    "expansion_roadmap": "Plans include dedicated AI-assisted creative workflows, additional DAW plugin compatibility, and educational partnerships with music schools."
   }
 }

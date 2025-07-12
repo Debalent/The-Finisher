@@ -1,3 +1,11 @@
+# Configuration for Git submodules in The Finisher project
+# Manages external repositories embedded within the main repository
+# See https://git-scm.com/docs/gitmodules for details
+
 [submodule "backend/sample_organizer"]
 	path = backend/sample_organizer
 	url = https://github.com/Debalent/BeatSample-Organizer.git
+	branch = main
+	update = merge
+	# Tracks the 'main' branch of BeatSample-Organizer for beat organization
+	# Uses 'merge' to incorporate upstream changes safely

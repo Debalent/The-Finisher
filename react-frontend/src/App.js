@@ -28,6 +28,18 @@ function App() {
     }
   }
 
+  const subscribe = async () => {
+    try {
+      const resp = await fetch('http://localhost:8000/api/create-checkout-session', { method: 'POST' });
+      if (!resp.ok) throw new Error('Checkout failed');
+      const data = await resp.json();
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      console.error('Subscribe error', err);
+      alert('Failed to create checkout session');
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
@@ -59,6 +71,7 @@ function App() {
             <div className="sm:col-span-2 flex gap-3">
               <button disabled={loading} type="submit" className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded">{loading ? 'Generating...' : 'Generate Lyrics'}</button>
               <button type="button" onClick={() => navigator.clipboard.writeText(lyrics).catch(()=>{})} className="bg-transparent border border-indigo-400 text-indigo-100 py-2 px-3 rounded">Copy</button>
+              <button type="button" onClick={subscribe} className="ml-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded">Subscribe</button>
             </div>
           </form>
 

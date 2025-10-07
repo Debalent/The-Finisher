@@ -10,6 +10,12 @@ services:
     ports:
       - '8000:8000'
     restart: unless-stopped
+    depends_on:
+      - db
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      retries: 5
 
   frontend:
     build:
@@ -18,4 +24,23 @@ services:
     ports:
       - '3000:80'
     restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+      interval: 10s
+      retries: 5
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: finisher
+      POSTGRES_PASSWORD: finisher
+      POSTGRES_DB: the_finisher
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finisher"]
+      interval: 10s
+      retries: 5
 

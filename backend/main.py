@@ -1,17 +1,34 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from typing import Optional
 import os
-import requests
+import logging
+from dotenv import load_dotenv
+import openai
+import stripe
+
+from . import db
+
+load_dotenv()
+
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+logging.basicConfig(level=LOG_LEVEL)
+logger = logging.getLogger('the-finisher')
 
 app = FastAPI(title="The Finisher - MVP Backend")
 
-# Allow requests from local files and any dev origins
+# Configure CORS from environment variable (comma-separated) for production safety
+allowed = os.getenv('ALLOWED_ORIGINS', '')
+if allowed:
+    origins = [o.strip() for o in allowed.split(',') if o.strip()]
+else:
+    origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,40 +61,97 @@ def simple_lyrics_generator(genre: str, bpm: int, mood: str, theme: str) -> str:
     return "\n".join(lines)
 
 
-def openai_generate(prompt: str, api_key: str) -> str:
-    # Minimal OpenAI call wrapper — uses the completions endpoint pattern.
-    # This is intentionally simple; for production use the official OpenAI SDK and robust error handling.
-    url = 'https://api.openai.com/v1/chat/completions'
-    headers = {
-        'Authorization': f'Bearer {api_key}',
-        'Content-Type': 'application/json'
-    }
-    payload = {
-        'model': 'gpt-3.5-turbo',
-        'messages': [{'role': 'user', 'content': prompt}],
-        'max_tokens': 300,
-        'temperature': 0.8,
-    }
-    r = requests.post(url, headers=headers, json=payload, timeout=15)
-    r.raise_for_status()
-    data = r.json()
+def openai_generate(prompt: str) -> str:
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        raise RuntimeError('OPENAI_API_KEY not set')
+    openai.api_key = api_key
+    # Use the official OpenAI SDK
+    resp = openai.ChatCompletion.create(
+        model=os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo'),
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=400,
+        temperature=float(os.getenv('OPENAI_TEMPERATURE', '0.8')),
+    )
+    return resp.choices[0].message.content.strip()
+
+
+@app.on_event('startup')
+def startup_event():
+    # Initialize DB
     try:
-        return data['choices'][0]['message']['content'].strip()
-    except Exception:
-        return '\n'.join([choice.get('text', '') for choice in data.get('choices', [])])
+        db.init_db()
+        logger.info('Database initialized')
+    except Exception as e:
+        logger.exception('Failed to init DB: %s', e)
 
 
 @app.post("/api/lyrics/generate")
 async def generate_lyrics(req: LyricsRequest):
     provider = os.getenv('MODEL_PROVIDER', 'local')
-    if provider == 'openai' and os.getenv('OPENAI_API_KEY'):
-        prompt = f"Write lyrics in the style of {req.genre} at {req.bpm} bpm with a {req.mood} mood about {req.theme}. Keep it 8-16 lines."
-        try:
-            lyrics = openai_generate(prompt, os.getenv('OPENAI_API_KEY'))
-            return {"lyrics": lyrics, "timestamp": datetime.utcnow().isoformat() + "Z", "provider": "openai"}
-        except Exception as e:
-            # fallback to local generator on failure
-            print('OpenAI generation failed:', e)
+    lyrics = None
+    provider_used = 'local'
 
-    lyrics = simple_lyrics_generator(req.genre, req.bpm, req.mood, req.theme)
-    return {"lyrics": lyrics, "timestamp": datetime.utcnow().isoformat() + "Z", "provider": "local"}
+    if provider == 'openai':
+        try:
+            prompt = f"Write lyrics in the style of {req.genre} at {req.bpm} bpm with a {req.mood} mood about {req.theme}. Keep it 8-16 lines."
+            lyrics = openai_generate(prompt)
+            provider_used = 'openai'
+        except Exception as e:
+            logger.exception('OpenAI generation failed: %s', e)
+
+    if not lyrics:
+        lyrics = simple_lyrics_generator(req.genre, req.bpm, req.mood, req.theme)
+
+    # Save generated lyrics
+    try:
+        record = db.save_lyric(req.genre, req.bpm, req.mood, req.theme, lyrics, provider_used)
+    except Exception as e:
+        logger.exception('Failed to save lyric: %s', e)
+
+    return {"lyrics": lyrics, "timestamp": datetime.utcnow().isoformat() + "Z", "provider": provider_used}
+
+
+
+@app.get('/health')
+def health():
+    return {'status': 'ok'}
+
+
+@app.get('/api/lyrics/recent')
+def recent_lyrics(limit: int = 10):
+    try:
+        items = db.get_recent(limit)
+        return {'items': [item.dict() for item in items]}
+    except Exception as e:
+        logger.exception('Failed to fetch recent lyrics: %s', e)
+        raise HTTPException(status_code=500, detail='DB error')
+
+
+# Stripe skeleton endpoints
+stripe_api_key = os.getenv('STRIPE_API_KEY')
+if stripe_api_key:
+    stripe.api_key = stripe_api_key
+
+
+@app.post('/api/create-checkout-session')
+async def create_checkout():
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail='Stripe not configured')
+    # Simple placeholder; in production you'd accept a price param or plan id
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            mode='subscription',
+            line_items=[{
+                'price': os.getenv('STRIPE_PRICE_ID'),
+                'quantity': 1,
+            }],
+            success_url=os.getenv('STRIPE_SUCCESS_URL', 'https://example.com/success'),
+            cancel_url=os.getenv('STRIPE_CANCEL_URL', 'https://example.com/cancel'),
+        )
+        return {'url': session.url}
+    except Exception as e:
+        logger.exception('Stripe error: %s', e)
+        raise HTTPException(status_code=500, detail='Stripe error')
+

@@ -1,27 +1,96 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Finisher</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Finisher — MVP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Tailwind via CDN for MVP -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body { font-family: 'Poppins', sans-serif; }
+    </style>
+  </head>
+  <body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-6">
+    <main class="w-full max-w-3xl">
+      <div class="bg-gradient-to-br from-purple-800 to-indigo-700 rounded-2xl shadow-2xl p-8">
+        <h1 class="text-3xl font-bold mb-2 flex items-center gap-3">🎵 The Finisher <span class="text-sm font-normal opacity-80">MVP</span></h1>
+        <p class="mb-6 text-indigo-200">Lightweight songwriting assistant — generate mood & BPM aligned lyric suggestions.</p>
 
-  <!-- Tailwind CSS via Vite -->
-  <script type="module" src="/src/main.js"></script>
+        <form id="lyricsForm" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="text-sm text-indigo-100">Genre</span>
+            <input name="genre" class="mt-1 block w-full rounded-md bg-indigo-900 border-transparent focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2" value="hip-hop">
+          </label>
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Poppins:wght@400;700&display=swap" rel="stylesheet" />
-</head>
-<body class="bg-midnight text-electric font-pop min-h-screen flex items-center justify-center">
+          <label class="block">
+            <span class="text-sm text-indigo-100">BPM</span>
+            <input name="bpm" type="number" min="40" max="240" class="mt-1 block w-full rounded-md bg-indigo-900 p-2" value="90">
+          </label>
 
-  <div class="bg-deepPurple p-8 rounded-xl shadow-glow text-center animate-slideIn">
-    <h1 class="text-4xl font-techno mb-4">🎶 The Finisher</h1>
-    <p class="text-vibrantPink text-lg animate-pulseFast">
-      Your AI-powered songwriting sidekick.
-    </p>
-    <p class="text-white mt-2">
-      Mood. BPM. Flow. Inspiration on demand.
-    </p>
-  </div>
+          <label class="block">
+            <span class="text-sm text-indigo-100">Mood</span>
+            <input name="mood" class="mt-1 block w-full rounded-md bg-indigo-900 p-2" value="energetic">
+          </label>
 
-</body>
+          <label class="block">
+            <span class="text-sm text-indigo-100">Theme</span>
+            <input name="theme" class="mt-1 block w-full rounded-md bg-indigo-900 p-2" value="love">
+          </label>
+
+          <div class="sm:col-span-2 flex gap-3">
+            <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded">Generate Lyrics</button>
+            <button type="button" id="copyBtn" class="bg-transparent border border-indigo-400 text-indigo-100 py-2 px-3 rounded">Copy</button>
+          </div>
+        </form>
+
+        <section class="mt-6">
+          <h2 class="text-lg font-semibold mb-2">Generated Lyrics</h2>
+          <pre id="lyricsOutput" class="whitespace-pre-wrap bg-indigo-900/60 p-4 rounded text-indigo-50 min-h-[120px]">No lyrics yet — fill the form and press Generate.</pre>
+        </section>
+      </div>
+      <p class="mt-4 text-center text-sm text-gray-400">Backend: FastAPI — Endpoint: <code class="bg-gray-800 px-2 py-1 rounded">/api/lyrics/generate</code></p>
+    </main>
+
+    <script>
+      const form = document.getElementById('lyricsForm');
+      const output = document.getElementById('lyricsOutput');
+      const copyBtn = document.getElementById('copyBtn');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = new FormData(form);
+        const body = {
+          genre: data.get('genre'),
+          bpm: parseInt(data.get('bpm')) || 90,
+          mood: data.get('mood'),
+          theme: data.get('theme')
+        };
+
+        output.textContent = 'Generating...';
+        try {
+          const resp = await fetch('http://localhost:8000/api/lyrics/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          if (!resp.ok) throw new Error('Server error');
+          const json = await resp.json();
+          output.textContent = json.lyrics + '\n\n' + json.timestamp;
+        } catch (err) {
+          output.textContent = 'Failed to generate lyrics — is the backend running?';
+          console.error(err);
+        }
+      });
+
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(output.textContent).then(()=>{
+          copyBtn.textContent = 'Copied!';
+          setTimeout(()=> copyBtn.textContent = 'Copy', 1500);
+        }).catch(()=>{
+          copyBtn.textContent = 'Failed';
+        });
+      });
+    </script>
+  </body>
 </html>

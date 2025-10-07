@@ -39,34 +39,32 @@ cd frontend
 npm install
 
 
-Set up environment variables:
+⚙️ MVP Setup & Run (Fast)
 
-Copy .env.example to .env and fill in required API keys (e.g., Stripe, AI model credentials).
+What I changed for the MVP
+- Added a minimal FastAPI backend at `backend/main.py` that exposes `POST /api/lyrics/generate` and returns deterministic placeholder lyrics.
+- Created `backend/requirements.txt` (FastAPI + Uvicorn).
+- Reworked the root `index.html` into a small Tailwind-powered single-page app that calls the backend and displays generated lyrics.
 
+Quick start (Windows PowerShell)
 
-Run the application:
+1) Create and activate a virtual environment:
 
-Start the backend:uvicorn main:app --reload
+  python -m venv .venv; .\.venv\Scripts\Activate.ps1
 
+2) Install backend dependencies:
 
-Start the frontend:npm run dev
+  pip install -r backend\requirements.txt
 
+3) Start the backend (in a terminal):
 
+  uvicorn backend.main:app --reload
 
+4) Open `index.html` in your browser (no build step required for the MVP UI). The page will POST to `http://localhost:8000/api/lyrics/generate`.
 
-
-📚 API Documentation
-The Finisher provides a RESTful API for integrating lyric generation capabilities into other applications, supporting licensing and third-party integrations.
-
-Endpoint: POST /api/lyrics/generate
-Description: Generate lyrics based on provided parameters.
-Request Body:{
-  "genre": "hip-hop",
-  "bpm": 90,
-  "mood": "energetic",
-  "theme": "love"
-}
-
+Notes
+- This MVP avoids complex AI model installs to keep things reproducible locally. The backend contains a simple placeholder generator that you can later swap with calls to Hugging Face or an internal model.
+- For a production-ready app, move the frontend into a React project, secure CORS, add authentication, and integrate a true lyric-generation model and a database.
 
 Response:{
   "lyrics": "Generated lyrics here...",

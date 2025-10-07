@@ -97,3 +97,25 @@ Plugin system expansion for collaborative writing tools.
 📩 Contact
 For inquiries, collaborations, or investment opportunities, feel free to reach out:
 📧 Email: demond.balentine@atlasschool.com🔗 LinkedIn: Demond Balentine📞 Phone: 479-250-2573
+
+## Deployment
+
+This repository includes a GitHub Actions workflow `publish-docker.yml` that builds and pushes Docker images for the backend and frontend to Docker Hub when changes are pushed to `main`.
+
+Required GitHub Secrets (Repository > Settings > Secrets):
+- `DOCKERHUB_USERNAME` — your Docker Hub username
+- `DOCKERHUB_TOKEN` — a Docker Hub access token (or password)
+
+Optional environment variables (configure in your deployment environment or `.env`):
+- `OPENAI_API_KEY` — OpenAI API key if you enable the `openai` provider
+- `STRIPE_API_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET` — Stripe credentials for checkout
+- `DATABASE_URL` — Postgres URL for production (if not set, SQLite is used)
+- `SENTRY_DSN` — Sentry project DSN for error tracking
+
+How it works:
+1. Commit and push to `main`.
+2. GitHub Actions builds two Docker images and pushes them to your Docker Hub repo:
+  - `${{ secrets.DOCKERHUB_USERNAME }}/the-finisher-backend:latest`
+  - `${{ secrets.DOCKERHUB_USERNAME }}/the-finisher-frontend:latest`
+3. Use your container host (Render, AWS, Docker Compose) to deploy the images.
+

@@ -8,6 +8,10 @@ import logging
 from dotenv import load_dotenv
 import openai
 import stripe
+import sentry_sdk
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from fastapi.responses import PlainTextResponse
 
 from . import db
 
@@ -18,6 +22,17 @@ logging.basicConfig(level=LOG_LEVEL)
 logger = logging.getLogger('the-finisher')
 
 app = FastAPI(title="The Finisher - MVP Backend")
+
+# Sentry (optional)
+SENTRY_DSN = os.getenv('SENTRY_DSN')
+if SENTRY_DSN:
+    sentry_sdk.init(dsn=SENTRY_DSN)
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(429, _rate_limit_exceeded_handler)
+
 
 # Configure CORS from environment variable (comma-separated) for production safety
 allowed = os.getenv('ALLOWED_ORIGINS', '')
@@ -154,4 +169,20 @@ async def create_checkout():
     except Exception as e:
         logger.exception('Stripe error: %s', e)
         raise HTTPException(status_code=500, detail='Stripe error')
+
+
+@app.post('/webhooks/stripe')
+async def stripe_webhook(request):
+    payload = await request.body()
+    sig_header = request.headers.get('stripe-signature')
+    endpoint_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret) if endpoint_secret else None
+    except Exception as e:
+        logger.exception('Invalid Stripe webhook: %s', e)
+        raise HTTPException(status_code=400, detail='Invalid webhook')
+
+    # handle event types here
+    logger.info('Received stripe event: %s', getattr(event, 'type', 'unknown'))
+    return PlainTextResponse('ok')
 

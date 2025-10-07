@@ -96,7 +96,7 @@ Plugin system expansion for collaborative writing tools.
 ✅ Completed: Core lyric AI, BPM synchronization, emotional tone matching.🔄 In Development: Improved UI/UX, new genre models, AI-powered melody assistance.📅 Future Plans: Investor outreach, subscription implementation, DAW compatibility.
 📩 Contact
 For inquiries, collaborations, or investment opportunities, feel free to reach out:
-📧 Email: demond.balentine@atlasschool.com🔗 LinkedIn: Demond Balentine📞 Phone: 479-250-2573
+📧 Email: demond.balentine@atlasstudents.com🔗 LinkedIn: Demond Balentine📞 Phone: 479-250-2573
 
 ## Deployment
 
